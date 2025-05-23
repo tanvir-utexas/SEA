@@ -51,10 +51,16 @@ python inference.py --input path/to/input.wav --output path/to/output.wav --edit
 
 #### Supported Sources
 
-- `vocals`
+- `accordion`
+- `acoustic guitar`
+- `bass guitar`
 - `drums`
-- `bass`
-- `other` (e.g., guitar, piano, etc.)
+- `flute`
+- `harmonica`
+- `piano`
+- `trumpet`
+- `violin`
+- `xylophone`
 
 #### Example Usage
 

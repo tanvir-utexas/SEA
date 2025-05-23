@@ -1,0 +1,16 @@
+{
+    "source_prompt": "Playing trumpet",
+    "edit_mode": "replace",
+    "add_src": "acoustic guitar",
+    "remove_src": "trumpet",
+    "style_prompt": "",
+    "steps": 100,
+    "cfg_scale_src": 3,
+    "cfg_scale_trg": 12,
+    "mixed_sampling": true,
+    "close_start": 50,
+    "far_start": 65,
+    "mix_start": 30,
+    "mix_end": 32,
+    "randomize_seed": false
+}

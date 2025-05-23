@@ -1,0 +1,16 @@
+{
+    "source_prompt": "A music loop with piano and drums",
+    "edit_mode": "style_transfer",
+    "add_src": "flute",
+    "remove_src": "drums",
+    "style_prompt": "A happy upbeat music loop",
+    "steps": 100,
+    "cfg_scale_src": 3,
+    "cfg_scale_trg": 12,
+    "mixed_sampling": true,
+    "close_start": 40,
+    "far_start": 60,
+    "mix_start": 30,
+    "mix_end": 32,
+    "randomize_seed": false
+}

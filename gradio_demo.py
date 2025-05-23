@@ -19,8 +19,17 @@ import audioldm
 import soundfile as sf
 import shutil
 import json 
+import glob
 
-# os.environ["CUDA_VISIBLE_DEVICES"] = "1"
+
+device = torch.device("cuda" if torch.cuda.is_available() else "cpu")
+
+# load the super resolution models
+audiosr = build_sr_model(model_name="basic", device=device)
+
+# load the audio editing models
+model = build_model(model_name="audioldm-m-full").to(device)
+
 
 def display_spec(wav=None, sr=None, audio_path=None, name="mel_spectrogram.png"):
 
@@ -37,22 +46,11 @@ def display_spec(wav=None, sr=None, audio_path=None, name="mel_spectrogram.png")
     plt.figure(figsize=(10, 4))
     librosa.display.specshow(S_dB, sr=sr, x_axis='time', y_axis='mel')
     plt.colorbar(format='%+2.0f dB')
-    # plt.title('Mel-frequency spectrogram')
     plt.tight_layout()
     plt.savefig(name, dpi=300)
     plt.close()
 
     return name
-
-# torch.cuda.set_device(6)
-device = torch.device("cuda:1" if torch.cuda.is_available() else "cpu")
-
-# load the super resolution models
-audiosr = build_sr_model(model_name="basic", device=device)
-
-# load the audio editing models
-model = build_model(model_name="audioldm-m-full").to(device)
-
 
 def randomize_seed_fn(seed, randomize_seed):
     if randomize_seed:
@@ -83,7 +81,8 @@ def edit(
     ):
     steps = int(steps)
     ldm_stable = model
-    temp_path = "/home/tm36864/Audit/ACAE/output/generation_audio_to_audio/temp"
+
+    temp_path = "./output/temp"
 
     if input_audio is None:
         raise gr.Error('Input audio missing!')
@@ -124,11 +123,9 @@ def edit(
         wT = wT_holder.to(device)
         src_latents = [x.to(device) for x in src_latents_holder]
 
-    # base_path_audios = "/home/tm36864/Audit/MSEdit/output/stable_audio"
-
-    base_path_audios = "/home/tm36864/Audit/ACAE/output/stable_audio"
-    src_path = os.path.join(base_path_audios, f"Playing {remove_src} loop")
-    trg_path = os.path.join(base_path_audios, f"Playing {add_src} loop")
+    base_path_audios = "./exemplar_audios"
+    src_path = os.path.join(base_path_audios, f"{remove_src}")
+    trg_path = os.path.join(base_path_audios, f"{add_src}")
 
     waveform = ddim_sample(
                         ldm_stable, 
@@ -178,6 +175,53 @@ def edit(
     return output, mel_input, mel_output, wT_holder.cpu(), src_latents_holder, do_inversion, save_file_paths
 
 
+def get_examples_from_dir(base_dir="./Examples"):
+    """
+    Scans the Examples directory and returns a list of example inputs for gr.Examples.
+    Each example includes input_audio, do_inversion, wT_holder, src_latents_holder, edit_mode,
+    add_src, remove_src, style_prompt, steps, cfg_scale_src, cfg_scale_tar, mixed_sampling,
+    T_start, close_start, far_start, mix_start, mix_end, randomize_seed, output_audio,
+    input_spec, output_spec.
+    """
+    examples = []
+    for root, dirs, files in os.walk(base_dir):
+        if "hyper_params.json" in files:
+            json_path = os.path.join(root, "hyper_params.json")
+            with open(json_path, "r") as f:
+                params = json.load(f)
+            # Find audio and spec files
+            input_audio = os.path.join(root, "input_audio.wav")
+            output_audio = os.path.join(root, "output_audio.wav")
+            input_spec = os.path.join(root, "input_spec.png")
+            output_spec = os.path.join(root, "output_spec.png")
+            # Fill in the order of inputs for gr.Examples
+            example = [
+                input_audio,                # input_audio
+                True,                      # do_inversion (default True for example)
+                None,                      # wT_holder
+                None,                      # src_latents_holder
+                params.get("edit_mode", "replace"),
+                params.get("add_src", "None"),
+                params.get("remove_src", "None"),
+                params.get("style_prompt", ""),
+                params.get("steps", 100),
+                params.get("cfg_scale_src", 3),
+                params.get("cfg_scale_trg", 12),
+                params.get("mixed_sampling", True),
+                "far_start",               # T_start (default, adjust if needed)
+                params.get("close_start", 45),
+                params.get("far_start", 65),
+                params.get("mix_start", 30),
+                params.get("mix_end", 32),
+                params.get("randomize_seed", False),
+                output_audio,              # output_audio
+                input_spec,                # input_spectrogram
+                output_spec                # output_spectrogram
+            ]
+            examples.append(example)
+    return examples
+
+
 def save_all(
             save_file_paths,
             folder_name,
@@ -201,7 +245,7 @@ def save_all(
     input_audio_path, output_audio_path = save_file_paths[0], save_file_paths[1] 
     input_spec_path, output_spec_path = save_file_paths[2], save_file_paths[3]
 
-    base_path = "/home/tm36864/Audit/MSEdit/output/results/two_src"
+    base_path = "./output/results/"
     path = os.path.join(base_path, source_name, folder_name)
     
     os.makedirs(path, exist_ok=True)
@@ -215,7 +259,6 @@ def save_all(
     shutil.copy(output_spec_path, os.path.join(path, 'output_spec.png'))
 
     # Save dictionary to a JSON file
-
     data = {
             'source_prompt': source_prompt,
             'edit_mode': edit_mode,
@@ -239,42 +282,11 @@ def save_all(
     print("Saved all files!")
 
 intro = """
-<h1 style="font-weight: 1400; text-align: center; margin-bottom: 7px;"> ZPAE Editing 🎧 </h1>
-<h2 style="font-weight: 1400; text-align: center; margin-bottom: 7px;"> Zero-Shot Partial Text-Prompt based Audio Editing 🎛️ </h2>
-<h3 style="margin-bottom: 10px; text-align: center;">
-    <a href="">[Paper]</a>&nbsp;|&nbsp;
-    <a href="">[Project page]</a>&nbsp;|&nbsp;
-    <a href="">[Code]</a>
-</h3>
-
-
-<p style="font-size: 0.9rem; margin: 0rem; line-height: 1.2em; margin-top:1em">
-For faster inference without waiting in queue, you may duplicate the space and upgrade to GPU in settings.
-<a href="https://huggingface.co/spaces/hilamanor/audioEditing?duplicate=true">
-<img style="margin-top: 0em; margin-bottom: 0em; display:inline" src="https://bit.ly/3gLdBN6" alt="Duplicate Space" ></a>
-</p>
-
+<h1 style="font-weight: 1400; text-align: center; margin-bottom: 7px;"> SAE Audio Editing </h1>
+<h2 style="font-weight: 1400; text-align: center; margin-bottom: 7px;"> Caption-Free Diffusion Audio Editing via Semantic Embedding Arithmetic </h2>
 """
 
-help = """
-<div style="font-size:medium">
-<b>Instructions:</b><br>
-<ul style="line-height: normal">
-<li>You just provide an input audio, edit mode, and select sources for editing. </li>
-<li>T<sub>start</sub> is used to control the tradeoff between fidelity to the original signal and text-adhearance.
-Lower value -> favor fidelity. Higher value -> apply a stronger edit.</li>
-<li>Make sure that you use an AudioLDM2 version that is suitable for your input audio.
-For example, use the music version for music and the large version for general audio.
-</li>
-<li><strong>Unlimited length</strong>: This space automatically trims input audio to a maximum length of 10 seconds.
-</ul>
-</div>
-
-"""
-
-
-with gr.Blocks(css='style.css') as demo:  #, delete_cache=(3600, 3600)) as demo:
-# with gr.Blocks() as demo:  #, delete_cache=(3600, 3600)) as demo:
+with gr.Blocks(css='style.css') as demo:  
     def reset_do_inversion(do_inversion_user, do_inversion):
         do_inversion = True
         do_inversion_user = True
@@ -291,7 +303,7 @@ with gr.Blocks(css='style.css') as demo:  #, delete_cache=(3600, 3600)) as demo:
             do_inversion_user = False
         return do_inversion_user, do_inversion
 
-    # gr.HTML(intro)
+    gr.HTML(intro)
     wT_holder = gr.State()
     src_latents_holder = gr.State()
     save_file_paths = gr.State()
@@ -337,7 +349,6 @@ with gr.Blocks(css='style.css') as demo:  #, delete_cache=(3600, 3600)) as demo:
                                info="Choose a source to be removed",
                                value="None", interactive=True, type="value", scale=2)
 
-        # Add source (10 sources)   
         add_src = gr.Dropdown(label="Add Source",
                                choices=["acoustic guitar",
                                         "bass guitar",
@@ -406,10 +417,6 @@ with gr.Blocks(css='style.css') as demo:  #, delete_cache=(3600, 3600)) as demo:
             randomize_seed = gr.Checkbox(label='Randomize seed', value=False)
             folder_name = gr.Textbox(label="Folder Name", placeholder="Sample dir name")
             length = gr.Number(label="Length", interactive=False, visible=False)
-        
-
-    with gr.Accordion("Help💡", open=False):
-        gr.HTML(help)
 
     submit.click(
         fn=randomize_seed_fn,
@@ -482,12 +489,34 @@ with gr.Blocks(css='style.css') as demo:  #, delete_cache=(3600, 3600)) as demo:
     cfg_scale_tar.change(fn=reset_do_inversion, inputs=[do_inversion_user, do_inversion], outputs=[do_inversion_user, do_inversion]) 
     steps.change(fn=reset_do_inversion, inputs=[do_inversion_user, do_inversion], outputs=[do_inversion_user, do_inversion])
 
-    # gr.Examples(
-    #     label="Examples",
-    #     examples=get_example(),
-    #     inputs=[input_audio, src_prompt, tar_prompt, t_start, model_id, length, output_audio],
-    #     outputs=[output_audio]
-    # )
+    gr.Examples(
+        label="Examples",
+        examples=get_examples_from_dir("./Examples"),
+        inputs=[
+            input_audio,
+            do_inversion,
+            wT_holder,
+            src_latents_holder,
+            edit_mode,
+            add_src,
+            remove_src,
+            style_prompt,
+            steps,
+            cfg_scale_src,
+            cfg_scale_tar,
+            mixed_sampling,
+            T_start,
+            close_start,
+            far_start,
+            mix_start,
+            mix_end,
+            randomize_seed,
+            output_audio,
+            input_spectrogram,
+            output_spectrogram
+        ],
+        outputs=[output_audio, input_spectrogram, output_spectrogram]
+    )
 
     demo.queue()
     demo.launch()

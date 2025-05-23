@@ -1,0 +1,16 @@
+{
+    "source_prompt": "A music loop with piano and drums",
+    "edit_mode": "replace",
+    "add_src": "violin",
+    "remove_src": "piano",
+    "style_prompt": "",
+    "steps": 100,
+    "cfg_scale_src": 3,
+    "cfg_scale_trg": 12,
+    "mixed_sampling": true,
+    "close_start": 30,
+    "far_start": 45,
+    "mix_start": 20,
+    "mix_end": 22,
+    "randomize_seed": false
+}
