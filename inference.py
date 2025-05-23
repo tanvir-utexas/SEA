@@ -22,7 +22,7 @@ import json
 from io import BytesIO
 
 
-device = torch.device("cuda:6" if torch.cuda.is_available() else "cpu")
+device = torch.device("cuda" if torch.cuda.is_available() else "cpu")
 audiosr = build_sr_model(model_name="basic", device=device)
 model = build_model(model_name="audioldm-m-full").to(device)
 
@@ -196,4 +196,3 @@ if __name__ == "__main__":
     )
 
     print("Editing completed. Results:")
-    # print(result)

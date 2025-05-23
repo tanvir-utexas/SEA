@@ -1,4 +1,4 @@
-name: sea-adit
+name: sea-audio-edit
 channels:
   - defaults
 dependencies:

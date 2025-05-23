@@ -83,6 +83,7 @@ def edit(
     ldm_stable = model
 
     temp_path = "./output/temp"
+    os.makedirs(temp_path, exist_ok=True)
 
     if input_audio is None:
         raise gr.Error('Input audio missing!')
@@ -169,7 +170,7 @@ def edit(
 
     save_file_paths = [input_audio,
         os.path.join(temp_path, "super_res_audio.wav"), 
-        "input_spec.png", 
+        os.path.join(temp_path, "input_spec.png"), 
         os.path.join(temp_path, "output_spec.png")]
 
     return output, mel_input, mel_output, wT_holder.cpu(), src_latents_holder, do_inversion, save_file_paths
@@ -197,9 +198,6 @@ def get_examples_from_dir(base_dir="./Examples"):
             # Fill in the order of inputs for gr.Examples
             example = [
                 input_audio,                # input_audio
-                True,                      # do_inversion (default True for example)
-                None,                      # wT_holder
-                None,                      # src_latents_holder
                 params.get("edit_mode", "replace"),
                 params.get("add_src", "None"),
                 params.get("remove_src", "None"),
@@ -247,7 +245,6 @@ def save_all(
 
     base_path = "./output/results/"
     path = os.path.join(base_path, source_name, folder_name)
-    
     os.makedirs(path, exist_ok=True)
 
     # save_waveforms
@@ -282,8 +279,44 @@ def save_all(
     print("Saved all files!")
 
 intro = """
-<h1 style="font-weight: 1400; text-align: center; margin-bottom: 7px;"> SAE Audio Editing </h1>
-<h2 style="font-weight: 1400; text-align: center; margin-bottom: 7px;"> Caption-Free Diffusion Audio Editing via Semantic Embedding Arithmetic </h2>
+<h1 style="font-weight: 1400; text-align: center; margin-bottom: 7px;">Semantic Audio Editing System</h1>
+<h2 style="font-weight: 1400; text-align: center; margin-bottom: 7px;">Advanced Audio Manipulation through Semantic Embedding Arithmetic and Diffusion Models</h2>
+"""
+
+help = """
+<div style="font-size:medium">
+<b>Instructions for Audio Editing:</b><br>
+<ul style="line-height: normal">
+<li>For REPLACEMENT mode:
+    <ul>
+        <li>Set edit mode to 'replace'</li>
+        <li>Select both 'drop source' (what to remove) and 'add source' (what to add)</li>  
+    </ul>
+</li>
+<li>For ADDITION mode:
+    <ul>
+        <li>Set edit mode to 'addition'</li>
+        <li>Select only 'add source' (source to add)</li>
+        <li>'Drop source' can be left as None</li>
+    </ul>
+</li>
+<li>For DROP mode:
+    <ul>
+        <li>Set edit mode to 'delete'</li>
+        <li>Select only 'drop source' (source to remove)</li>
+        <li>'Add source' can be left as None</li>
+    </ul>
+</li>
+<li>For STYLE TRANSFER mode:
+    <ul>
+        <li>Set edit mode to 'style_transfer'</li>
+        <li>Enter desired style in the 'Style Prompt' field</li>
+        <li>Sources can be left as None</li>
+    </ul>
+</li>
+<li>Note: Input audio is limited to 10 seconds duration</li>
+</ul>
+</div>
 """
 
 with gr.Blocks(css='style.css') as demo:  
@@ -418,6 +451,9 @@ with gr.Blocks(css='style.css') as demo:
             folder_name = gr.Textbox(label="Folder Name", placeholder="Sample dir name")
             length = gr.Number(label="Length", interactive=False, visible=False)
 
+    with gr.Accordion("Help💡", open=False):
+        gr.HTML(help)
+
     submit.click(
         fn=randomize_seed_fn,
         inputs=[seed, randomize_seed],
@@ -494,9 +530,6 @@ with gr.Blocks(css='style.css') as demo:
         examples=get_examples_from_dir("./Examples"),
         inputs=[
             input_audio,
-            do_inversion,
-            wT_holder,
-            src_latents_holder,
             edit_mode,
             add_src,
             remove_src,

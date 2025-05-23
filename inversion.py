@@ -11,7 +11,6 @@ from audioldm.audio import read_wav_file
 from audioldm.pipeline import set_cond_text, set_cond_audio, make_batch_for_text_to_audio, duration_to_latent_t_size
 
 
-
 def next_step(ldm_model, model_output, timestep, sample, sampler):
     timestep, next_timestep = min(timestep - sampler.ddpm_num_timesteps
                                   // len(sampler.ddim_timesteps), 999), timestep

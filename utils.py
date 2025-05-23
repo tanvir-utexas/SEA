@@ -3,7 +3,8 @@ import audioldm
 from audioldm.audio import TacotronSTFT
 from audioldm.utils import default_audioldm_config
 from typing import Optional, List, Tuple, Dict, NamedTuple
-
+from audioldm.audio import read_wav_file
+from audioldm.utils import default_audioldm_config
 
 def load_waveform(file_path, batch_size, device, duration):
     waveform = read_wav_file(file_path, int(duration * 102.4) * 160)

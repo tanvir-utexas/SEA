@@ -1,8 +1,7 @@
 {
     "source_prompt": "A music loop with piano and drums",
-    "edit_mode": "delete",
-    "remove_src": "drums",
-    "style_prompt": "",
+    "edit_mode": "style_transfer",
+    "style_prompt": "A Jazz music style loop",
     "steps": 100,
     "cfg_scale_src": 3,
     "cfg_scale_trg": 12,
