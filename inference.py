@@ -99,9 +99,9 @@ def edit(
             skip=steps - far_start, 
             batch_size=1)
 
-    base_path_audios = "/home/tm36864/Audit/ACAE/output/stable_audio"
-    src_path = os.path.join(base_path_audios, f"Playing {remove_src} loop")
-    trg_path = os.path.join(base_path_audios, f"Playing {add_src} loop")
+    base_path_audios = "./exemplar_audios"
+    src_path = os.path.join(base_path_audios, f"{remove_src}")
+    trg_path = os.path.join(base_path_audios, f"{add_src}")
 
     waveform = ddim_sample(
             ldm_stable, 
