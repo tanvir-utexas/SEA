@@ -168,18 +168,6 @@ Examples/
 
 ---
 
-## Citation
-
-TO BE ADDED
-
----
-
-## License
-
-TO BE ADDED
-
----
-
 ## References
 
 This repository builds upon and integrates ideas and code from the following projects:
